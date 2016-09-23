@@ -1,5 +1,5 @@
 function [ N ] = visualise_reconstruction(X,Y,Z,C,mask,f,cc,S,Sd,Phi,mu,epsil,mm_to_px, title_str )
-%UNTITLED4 Summary of this function goes here
+%visualise_reconstruction Helper function
 [nrows,ncols]=size(Z);
 % [y,x] = meshgrid(1:ncols,1:nrows);
 % x=x-cc(1);
@@ -7,10 +7,6 @@ function [ N ] = visualise_reconstruction(X,Y,Z,C,mask,f,cc,S,Sd,Phi,mu,epsil,mm
 [x,y] = meshgrid(1:ncols,1:nrows);
 x=x-cc(2);
 y=y-cc(1);
-%for quick check cause of too much confusion :P
-xmin=min(x(:)); xmax=max(x(:));
-ymin=min(y(:)); ymax=max(y(:));
-fprintf(1,'image plane coord lims [%.0f %.0f %.0f %.0f] \n', xmin, xmax, ymin, ymax);
 % Normals
 % [zy,zx] = gradient(Z);
 [zx,zy] = gradient(Z);
@@ -41,21 +37,10 @@ Ireproj = ((A(:,:,num_image)).*(max(0,sum(N.*H(:,:,:,num_image),3))).^(1./C_affi
 set(h,'CData',(Ireproj))
 axis equal  
 
-% Sd=[0.930340420000000,-0.195723600000000,0.305429930000000;
-%     0.923262530000000,0.248279910000000,0.289477700000000;
-%     0.755365550000000,-0.517115260000000,0.398578590000000;
-%     0.0944696210000000,0.494408530000000,0.860295440000000;
-%     0.195812240000000,-0.790059490000000,0.577170620000000;
-%     -0.465786120000000,0.525195070000000,0.708990210000000;
-%     -0.756029390000000,-0.472338480000000,0.448976960000000;
-%     -0.800318460000000,-0.154047240000000,0.574830790000000];
-% 
-% Sd=Sd';
-
-hold on; %%uncoment to debug light source positions 
-
-%   plot3(0,0,0,'wo'); 
-%   plot3(0,0,-f/mm_to_px,'k*'); 
+hold on; 
+%%uncoment to debug light source positions 
+%   plot3(0,0,0,'wo'); %origin
+%   plot3(0,0,-f/mm_to_px,'k*'); %camera optical center
 %  for ii=0: floor(size(S,2)/6)
 %     ss=6*ii+1;
 %     if(ss<=size(S,2))
@@ -91,23 +76,13 @@ hold on; %%uncoment to debug light source positions
 % %       
 % %        end
 % end
-% 
+% %axis
 %  for ii=1:5
 % 	plot3( ii^2, 0,0,'r*');
 %     plot3( 0, ii^2, 0, 'g*');
 % 	plot3( 0,0, ii^2, 'b*');
 %  end
 hold off;
-
 title(title_str);
-
-% zu = Z([2:end end],:)-Z;
-% zu(mask ==0) = NaN;
-% zv = Z(:,[2:end end])-Z;
-% zv(mask ==0) = NaN;
-% N = zeros(nrows,ncols,3);
-% N(:,:,1) = zu;
-% N(:,:,2) = zv;
-% N(:,:,3) = ((f+Z)./f + (x.*zu+y.*zv)./f);
 end
 

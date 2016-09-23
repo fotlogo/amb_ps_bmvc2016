@@ -1,4 +1,6 @@
-clear all %TODO improve this and reuse into others
+%% Main test code for the paper 'Near-Field Photometric Stereo in Ambient Light'. from BMVC 2016
+% Author Fotios Logothetis fl302@cam.ac.uk
+clear all 
 close all
 
 results_dir='./results/';
@@ -7,36 +9,56 @@ data_dir='./data/';
 data_f=[data_dir,'buddha.mat'];      
 %  data_f=[data_dir,'head_far.mat'];
 
+%% Load data
+%Data MUST contain: 
+%--I: nrows x ncols x nimages . image raw data. values assumed to be
+% NORMALISED in [0,1]
+%--mask: nrows x ncols. forground mask
+%--S: 3 x nimages vector containing light source position in pixels. It is
+%VERY IMPORTANT to get this right otherwise the reconstruction will fail.
+%run the test_axis script to see a demonstration of the convention assumed
+%--f: camera focal length in pixels
+%--cc: [y0,x0]. camera principal point
+%--Phi: nimages x 1 vector containing light source luminances (e.g.
+%measured with lux meter). Scale does not matter due to image ratios so
+%keep them normalised (in (0,1]) for better numerical stability
+%--mean_distance: mean distance between camera plane and object (in
+%pixels). Just a rough estimate (e.g. measure with a ruler) should be ok
+%--mu: nimages x 1 vector containing light source radial attenuation
+%params. If not sure just set the zeros(nimages,1)
+%--Sd: nimages x 3 vector containing light source maximum illumination
+%directions. If mu=0 it does not matter (as long as it non-zero). if not
+%sure use [0;0;1] for each source
 load(data_f)   
 
+% mu = 0.5*ones(24,1); 
+% Sd=zeros(3,size(I,3));
+% Sd(3,:)=1;
+%   save(data_f,'I','mask','mean_distance','S','Phi','f','cc', 'mm_to_px', 'mu', 'Sd');
+%   return;
+
+figure;
+plot(Phi,'*-')
+return;
+
+
 C =1*ones(size(I,1),size(I,2)); 
-mu = 0.5*ones(24,1); 
-% mu = [2*ones(12,1); 0.2*ones(12,1); ];
-Sd=zeros(24,3);
-Sd(:,3)=1;
-
-%% INCREASE AMB FOR statue_24_ambient
-I=I+1.5*repmat(AMB,1,1,size(S,2));
-AMB=2.5*AMB;
-
-I = max(0,I);
 %% SELECT ONLY A FEW IMAGES
-% % % %   images=[1;12;16;19;16;12;1]; %4 images that work
-%   images=[1;3;6;9]; %for iso-depth
-% % % % %      
-% I=I(:,:,images);
-% S=S(:,images);
-% Phi=Phi(images);
-% mu=mu(images);
-% Sd=Sd(images,:);
+% % %   images=[1;12;16;19;16;12;1]; %4 images that work
+%   images=1:2:24;
+% % % %      
+I=I(:,:,images);
+S=S(:,images);
+Phi=Phi(images);
+mu=mu(images);
+Sd=Sd(:,images);
 %% RESIZE
+%This helps reducing computation time and RAM
 [nrows,ncols,nimages] = size(I);
-ratio =8;
+ratio =6;
 I=imresize(I,[nrows,ncols]/ratio); 
 mask=imresize(mask,[nrows,ncols]/ratio);
 C=imresize(C,[nrows,ncols]/ratio);
-AMB=imresize(AMB,[nrows,ncols]/ratio);
-% AMB=AMB/(256*256); %FIX DATA
 S=S/ratio;
 
 f = f/ratio;
@@ -46,26 +68,10 @@ mm_to_px =mm_to_px/ratio;
 
 [nrows,ncols,nb_images] = size(I);
 I = max(0.01,I);
-%
-figure(1);
-imshow(AMB);
-title('Ambient');
-
-% IM=max(I,[],3);
-% Im=mean(I,3);
-% 
-% %   C=(0.98-2*((IM-Im).^2));
-% % % C(mask==0)=NaN;
-% % 
-%  C=imresize(C,[nrows,ncols]/4);
-%  C=imresize(C,[nrows,ncols]);
-%  Ia=I-1*repmat(AMB,1,1,size(S,2));
-%  Ia=max(Ia,0);
  
 epsil = 0.01;   % Lambertian / specular weight
 refine_C=1;
-ambient=1; 
-%%
+%% group vars
 cam.f=f;
 cam.cc=cc;
 
@@ -77,20 +83,20 @@ S_struct.mu=mu;
 shadow_threshold = 0.01; 
 saturation_thress=0.99;
 thresholds=[shadow_threshold,saturation_thress];
-
-[XA,YA,ZA, C_refined] = ambient_ps(I, mask, mean_distance,cam, C,S_struct, epsil,thresholds,refine_C,ambient);
+%% run main function
+[XA,YA,ZA, C_refined] = ambient_ps(I, mask, mean_distance,cam, C,S_struct, epsil,thresholds,refine_C);
 
 C=C_refined;
 mask_out=mask;
 mask_out(isnan(ZA))=0;% 
 
-% 
-title_str=sprintf('Ambient perspective PS(new method) with %d images', size(S,2));
+%% Display 
+title_str=sprintf('Ambient perspective PS with %d images', size(S,2));
 [ N ] = visualise_reconstruction(XA,YA,ZA,C,mask_out,f,cc,S,Sd,Phi,mu,epsil,mm_to_px,title_str ); 
 
 figure;
 imshow(C_refined);
-title('refined c map');
+title('estimated c map');
 
 XYZ = cat(3,XA,YA,ZA)/mm_to_px;
 export_ply(XYZ,mask_out,[results_dir,'buddha.ply']);
