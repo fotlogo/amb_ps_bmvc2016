@@ -6,7 +6,8 @@ close all
 results_dir='./results/';
 data_dir='./data/';
 
-name='buddha'; %change that here
+  name='buddha'; 
+%  name='ArlequinMask';
 
 data_f=[data_dir,name,'.mat'];  
 %% Load data
@@ -26,25 +27,24 @@ data_f=[data_dir,name,'.mat'];
 %pixels). Just a rough estimate (e.g. measure with a ruler) should be ok
 %--mu: nimages x 1 vector containing light source radial attenuation
 %params. If not sure just set the zeros(nimages,1)
-%--Sd: nimages x 3 vector containing light source maximum illumination
+%--Sd: 3 x nimages vector containing light source maximum illumination
 %directions. If mu=0 it does not matter (as long as it non-zero). if not
 %sure use [0;0;1] for each source
-load(data_f)   
-
-% mu = 0.5*ones(24,1); 
-% Sd=zeros(3,size(I,3));
-% Sd(3,:)=1;
-% save(data_f,'I','mask','mean_distance','S','Phi','f','cc', 'mm_to_px', 'mu', 'Sd');
-% return;  
-C =1*ones(size(I,1),size(I,2)); 
+load(data_f) 
+%% SOME TESTS
+[nrows,ncols,nimages] = size(I);
+assert(size(S,1)==3);
+assert(size(S,2)==nimages);
+assert(size(Sd,1)==3);
+assert(size(Sd,2)==nimages);
+assert(size(Phi,1)==nimages);
+assert(size(mu,1)==nimages);
 %% RESIZE
 %This helps reducing computation time and RAM
 %The L1 optimiser will need 10+GB of RAM if running at full resolution
-[nrows,ncols,nimages] = size(I);
 ratio =2;
 I=imresize(I,[nrows,ncols]/ratio); 
 mask=imresize(mask,[nrows,ncols]/ratio);
-C=imresize(C,[nrows,ncols]/ratio);
 S=S/ratio;
 
 f = f/ratio;
@@ -64,6 +64,7 @@ S_struct.Phi=Phi;
 S_struct.mu=mu;
 %% Misk opts
 use_L2=1; %use (much) faster and less memory consuming L2 optimiser (instead of L1). The L1 optimiser 'should' be more accurate
+C =1*ones(size(I,1),size(I,2));  %initialise C as being Lambertian.
 refine_C=1;
 shadow_threshold = 0.01; 
 saturation_thress=0.99;
@@ -84,4 +85,3 @@ title('estimated c map');
 
 XYZ = cat(3,XA,YA,ZA)/mm_to_px;
 export_ply(XYZ,mask_out,[results_dir,name,'.ply']);
-
