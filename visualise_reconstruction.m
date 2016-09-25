@@ -1,9 +1,6 @@
-function [ N ] = visualise_reconstruction(X,Y,Z,C,mask,f,cc,S,Sd,Phi,mu,epsil,mm_to_px, title_str )
+function [ N ] = visualise_reconstruction(X,Y,Z,C,mask,f,cc,S,Sd,Phi,mu,mm_to_px, title_str )
 %visualise_reconstruction Helper function
 [nrows,ncols]=size(Z);
-% [y,x] = meshgrid(1:ncols,1:nrows);
-% x=x-cc(1);
-% y=y-cc(2);
 [x,y] = meshgrid(1:ncols,1:nrows);
 x=x-cc(2);
 y=y-cc(1);
@@ -18,6 +15,7 @@ N(:,:,1) = zy./normalisation;
 N(:,:,2) = zx./normalisation;
 N(:,:,3) = -Nz./normalisation; 
 
+epsil=0.01;
 [ A, H ] = calculate_A_H_fields(X,Y,Z,C,(mask>0),S,Sd,Phi,mu,epsil );
 
 % % Px ==> mm

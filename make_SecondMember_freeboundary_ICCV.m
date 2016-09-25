@@ -11,12 +11,6 @@ function B = make_SecondMember_freeboundary_ICCV(b,s,lambda,z0,mask,mapping_matr
 	nb_pixels_mask = sum(mask(:));
 	B = zeros(nb_pixels_mask,1);
 	
-	% Regularization 	
-% 	[X,Y]=find(mask>0);
-% 	indices_centre=sub2ind(size(mask),X,Y);
-% 	I_centre = mapping_matrix(indices_centre);
-% 	A_centre = 2*lambda*ones(length(I_centre),1);	
-	
 	B(:) = 2*lambda*z0(mask);	
 	
 	% Terms in Omega(:,:,1)

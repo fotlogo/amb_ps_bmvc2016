@@ -4,12 +4,10 @@ function [C_refined]=re_estimate_c(I,C,N,H,A,mask,shadow_threshold)
 	disp('C estimation (ambient version)...');
     [nrows,ncols,nb_images] = size(I);
     indices_mask = (mask>0);
-% 	t0 = tic; 
 %% calculate n.H for each image per pixel and rank images accordingly. This prety much determines photometric parallax
     NDotH=zeros(nrows,ncols,nb_images);   
     
-    Cmap=zeros(nrows,ncols);
-    
+    Cmap=zeros(nrows,ncols);    
 	for yy = 1:nb_images          
         Hi_dot_N=zeros(nrows,ncols);
         for k=1:size(N,3) %i.e. 3           

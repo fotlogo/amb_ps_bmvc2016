@@ -1,4 +1,4 @@
-function [X,Y,Z, C_refined] = ambient_ps(I, mask, mean_distance, cam, C, S_struct, epsil,thresholds,refine_C)
+function [X,Y,Z, C_refined] = ambient_ps(I, mask, mean_distance, cam, C, S_struct, thresholds, use_L2, refine_C)
 %ambient_ps main calculation function
 % Author Fotios Logothetis fl302@cam.ac.uk
 [nrows,ncols,~] = size(I);
@@ -13,19 +13,16 @@ Phi=S_struct.Phi;
 Phi=Phi(:);
 mu=S_struct.mu;
 %%% 
+epsil = 0.01;   % Lambertian / specular weight
 %optimiser params. leave them as they are   
 alpha = 50;
-minit = 5;
+minit = 2;
 maxit = 20;
 
 tol = 5e-4;
 tol_global = 1e-4;
 lambda = 1e-9;
-nGS = 100;
 nloops = 10;
-
-use_L2=1; %use (much) faster L2 optimiser (instead of L1). The L1 optimiser 'should'(in theory) be more accurate
-
 %%%
 indices_mask = (mask>0);
 %% PREPROCESING
@@ -73,7 +70,7 @@ for loop = 1:nloops
 	else 
             % L1 optim
             disp('SB refinement');
-            [Z,~,~,~] = minimisation_L1_bis(b,s,mask,Z0,tol,minit,maxit,lambda,order,alpha,nGS,1,Z);%       
+            [Z,~,~,~] = minimisation_L1_bis(b,s,mask,Z0,tol,minit,maxit,lambda,order,alpha,1,Z);%       
 	end      
 	Z(mask==0) = NaN;
   %%%%stopping condition on residual   

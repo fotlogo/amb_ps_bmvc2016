@@ -18,7 +18,7 @@ function export_ply(XYZ,mask,filename)
 	%%	
 	% Nuage de Points : 
 	indices_mask = find(mask>0);
-	[Imask,Jmask]=ind2sub(size(mask),indices_mask);
+% 	[Imask,Jmask]=ind2sub(size(mask),indices_mask);
 	indices = zeros(size(mask));
 	indices(indices_mask) = 1:length(indices_mask);		
 	mask=[mask;zeros(1,size(mask,2))];

@@ -36,8 +36,7 @@ function [A,mapping_matrix,Omega] = make_Matrix_freeboundary_ICCV(b,lambda,mask,
 	J=[J;I_centre(:)]; % Which columns ?
 	K=[K;A_centre(:)]; % Which values ? 	
 	clear I_centre indices_centre
-
-	
+    
 	% Terms in Omega(:,:,1)
 	[X,Y]=find(Omega>0);
 	indices_centre1=sub2ind(size(mask),X,Y);

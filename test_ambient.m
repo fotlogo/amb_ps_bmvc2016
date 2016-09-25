@@ -6,9 +6,9 @@ close all
 results_dir='./results/';
 data_dir='./data/';
 
-data_f=[data_dir,'buddha.mat'];      
-%  data_f=[data_dir,'head_far.mat'];
+name='buddha'; %change that here
 
+data_f=[data_dir,name,'.mat'];  
 %% Load data
 %Data MUST contain: 
 %--I: nrows x ncols x nimages . image raw data. values assumed to be
@@ -37,19 +37,11 @@ load(data_f)
 % save(data_f,'I','mask','mean_distance','S','Phi','f','cc', 'mm_to_px', 'mu', 'Sd');
 % return;  
 C =1*ones(size(I,1),size(I,2)); 
-%% SELECT ONLY A FEW IMAGES
-%    images=[1;3;5;7;10;11;13;16;17;20;22;23]; 
-% %    images=1:2:24;
-% % % % %      
-% I=I(:,:,images);
-% S=S(:,images);
-% Phi=Phi(images);
-% mu=mu(images);
-% Sd=Sd(:,images);
 %% RESIZE
 %This helps reducing computation time and RAM
+%The L1 optimiser will need 10+GB of RAM if running at full resolution
 [nrows,ncols,nimages] = size(I);
-ratio =4;
+ratio =2;
 I=imresize(I,[nrows,ncols]/ratio); 
 mask=imresize(mask,[nrows,ncols]/ratio);
 C=imresize(C,[nrows,ncols]/ratio);
@@ -62,9 +54,6 @@ mm_to_px =mm_to_px/ratio;
 
 [nrows,ncols,nb_images] = size(I);
 I = max(0.01,I);
- 
-epsil = 0.01;   % Lambertian / specular weight
-refine_C=1;
 %% group vars
 cam.f=f;
 cam.cc=cc;
@@ -73,25 +62,26 @@ S_struct.S=S;
 S_struct.Sd=Sd;
 S_struct.Phi=Phi;
 S_struct.mu=mu;
-
+%% Misk opts
+use_L2=1; %use (much) faster and less memory consuming L2 optimiser (instead of L1). The L1 optimiser 'should' be more accurate
+refine_C=1;
 shadow_threshold = 0.01; 
 saturation_thress=0.99;
 thresholds=[shadow_threshold,saturation_thress];
 %% run main function
-[XA,YA,ZA, C_refined] = ambient_ps(I, mask, mean_distance,cam, C,S_struct, epsil,thresholds,refine_C);
+[XA,YA,ZA, C_refined] = ambient_ps(I, mask, mean_distance,cam, C,S_struct,thresholds,use_L2,refine_C);
 
 C=C_refined;
 mask_out=mask;
 mask_out(isnan(ZA))=0;% 
-
 %% Display 
 title_str=sprintf('Ambient perspective PS with %d images', size(S,2));
-[ N ] = visualise_reconstruction(XA,YA,ZA,C,mask_out,f,cc,S,Sd,Phi,mu,epsil,mm_to_px,title_str ); 
+[ N ] = visualise_reconstruction(XA,YA,ZA,C,mask_out,f,cc,S,Sd,Phi,mu,mm_to_px,title_str ); 
 
 figure;
 imshow(C_refined);
 title('estimated c map');
 
 XYZ = cat(3,XA,YA,ZA)/mm_to_px;
-export_ply(XYZ,mask_out,[results_dir,'buddha.ply']);
+export_ply(XYZ,mask_out,[results_dir,name,'.ply']);
 

@@ -1,4 +1,4 @@
-function [z,d,e,it_breg] = minimisation_L1_bis(b,s,mask,z0,tol,minit,maxit,lambda,order,alpha,nGS,display,zinit)
+function [z,d,e,it_breg] = minimisation_L1_bis(b,s,mask,z0,tol,minit,maxit,lambda,order,alpha,display,zinit)
 % Input : 
 % b : nrows x ncols x m x 2 -- REQUIRED
 % s : nrows x ncols x m -- REQUIRED
@@ -523,11 +523,11 @@ function [z,d,e,it_breg] = minimisation_L1_bis(b,s,mask,z0,tol,minit,maxit,lambd
 		B(I_voisins_x4) = B(I_voisins_x4)+values8(indices_centre4);
 		B(I_voisins_y4) = B(I_voisins_y4)+values9(indices_centre4);
 		B = -B;
-		if(display>1)
-			toc
-			disp('Gauss-Seidel iterations...')
-			tic
-        end
+% 		if(display>1)
+% 			toc
+% 			disp('Gauss-Seidel iterations...')
+% 			tic
+%         end
         %% FOT matrix is symmetric positive definite, CG should work
 %         for ii=1:10
 %             rann=randn(size(B));
