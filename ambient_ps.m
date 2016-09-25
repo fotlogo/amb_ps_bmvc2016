@@ -104,7 +104,7 @@ for loop = 1:nloops
 	N(:,:,3) = -((f+Z)./f + (x.*zu+y.*zv)./f);
 	N = N./repmat(sqrt(N(:,:,1).^2+N(:,:,2).^2+N(:,:,3).^2),[1 1 3]);      
 	%%
-	C=re_estimate_c(I,C,N,H,A,mask,thresholds(1),1); 
+	C=re_estimate_c(I,C,N,H,A,mask,thresholds(1)); 
 	end 		
 end
 

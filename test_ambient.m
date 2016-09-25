@@ -34,28 +34,22 @@ load(data_f)
 % mu = 0.5*ones(24,1); 
 % Sd=zeros(3,size(I,3));
 % Sd(3,:)=1;
-%   save(data_f,'I','mask','mean_distance','S','Phi','f','cc', 'mm_to_px', 'mu', 'Sd');
-%   return;
-
-figure;
-plot(Phi,'*-')
-return;
-
-
+% save(data_f,'I','mask','mean_distance','S','Phi','f','cc', 'mm_to_px', 'mu', 'Sd');
+% return;  
 C =1*ones(size(I,1),size(I,2)); 
 %% SELECT ONLY A FEW IMAGES
-% % %   images=[1;12;16;19;16;12;1]; %4 images that work
-%   images=1:2:24;
-% % % %      
-I=I(:,:,images);
-S=S(:,images);
-Phi=Phi(images);
-mu=mu(images);
-Sd=Sd(:,images);
+%    images=[1;3;5;7;10;11;13;16;17;20;22;23]; 
+% %    images=1:2:24;
+% % % % %      
+% I=I(:,:,images);
+% S=S(:,images);
+% Phi=Phi(images);
+% mu=mu(images);
+% Sd=Sd(:,images);
 %% RESIZE
 %This helps reducing computation time and RAM
 [nrows,ncols,nimages] = size(I);
-ratio =6;
+ratio =4;
 I=imresize(I,[nrows,ncols]/ratio); 
 mask=imresize(mask,[nrows,ncols]/ratio);
 C=imresize(C,[nrows,ncols]/ratio);
