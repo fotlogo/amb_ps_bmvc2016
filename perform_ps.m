@@ -1,6 +1,7 @@
-function [X,Y,Z, C_refined] = ambient_ps(I, mask, mean_distance, cam, C, S_struct, thresholds, use_L2, refine_C)
-%ambient_ps main calculation function
-% Author Fotios Logothetis fl302@cam.ac.uk
+function [X,Y,Z, C_refined] = perform_ps(I, mask, mean_distance, cam, C, S_struct, thresholds, use_L2, refine_C, ambient)
+%ambient_ps main calculation function-has the option of running the old,
+%non ambeint code
+% Authors Fotios Logothetis fl302@cam.ac.uk and Yvain Quéau
 [nrows,ncols,~] = size(I);
 
 %uncompress parameters
@@ -13,7 +14,7 @@ Phi=S_struct.Phi;
 Phi=Phi(:);
 mu=S_struct.mu;
 %%% 
-epsil = 0.01;   % Lambertian / specular weight
+epsil = 0.25;   % Lambertian / specular weight
 %optimiser params. leave them as they are   
 alpha = 50;
 minit = 2;
@@ -51,7 +52,7 @@ for loop = 1:nloops
    
 	[ A, H ] = calculate_A_H_fields(X,Y,Z,C,indices_mask,S,Sd,Phi,mu,epsil);   
     % Create b,s fields
-    [b,s]=calculate_b_s_fields(I,indices_mask,x,y,Z,f,C,A,H,thresholds);    
+    [b,s]=calculate_b_s_fields(I,indices_mask,x,y,Z,f,C,A,H,thresholds,ambient);    
     
     clear A H  %save memory  
 %     L1 Opti
@@ -101,7 +102,7 @@ for loop = 1:nloops
 	N(:,:,3) = -((f+Z)./f + (x.*zu+y.*zv)./f);
 	N = N./repmat(sqrt(N(:,:,1).^2+N(:,:,2).^2+N(:,:,3).^2),[1 1 3]);      
 	%%
-	C=re_estimate_c(I,C,N,H,A,mask,thresholds(1)); 
+	C=re_estimate_c(I,C,N,H,A,mask,thresholds(1),ambient); 
 	end 		
 end
 

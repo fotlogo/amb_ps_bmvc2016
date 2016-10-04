@@ -1,6 +1,86 @@
-function [b,s]=calculate_b_s_fields(I,mask_indx,x,y,Z,f,C,A,H,thresholds)
+function [b,s]=calculate_b_s_fields(I,mask_indx,x,y,Z,f,C,A,H,thresholds, ambient)
 %calculate_b_s_fields Under perspective projection with or without ambient
 %chose one of the 2 versions 
+if ambient
+    [b,s]=calculate_b_s_fields_amb(I,mask_indx,x,y,Z,f,C,A,H,thresholds);
+else
+    [b,s]=calculate_b_s_fields_dark(I,mask_indx,x,y,Z,f,C,A,H,thresholds);
+end
+    %% PUT a flat patch in places where there are no data    
+    ss=sum(s,3);
+    holes=(ss==0);
+    b1=b(:,:,1,1);
+    b1(holes)=1;
+    b(:,:,1,1)=b1;
+end
+function [b,s]=calculate_b_s_fields_dark(I,indices_mask,x,y,Z,f,C,A,H,thresholds)
+shadow_threshold=thresholds(1);
+saturation_thresh=thresholds(2);
+% Fundamental equation fields
+ [nrows,ncols,nb_images] = size(I);
+% [h1,h2,h3,h4]=size(H)
+nb_combinations = nchoosek(nb_images,2);
+b = zeros(nrows,ncols,nb_combinations,2);
+s = zeros(nrows,ncols,nb_combinations);
+
+b1=zeros(nrows,ncols);
+b2=zeros(nrows,ncols);
+s12=zeros(nrows,ncols);
+
+current_index = 1;
+    for k = 1:nb_images-1
+        for i = k+1:nb_images 
+            %unfortunatelly, matlab does not allow I(mask,:) so we need
+            %temp varibles
+            A_i=A(:,:,i);
+            A_k=A(:,:,k);
+            I_i = I(:,:,i);
+            I_k = I(:,:,k);
+            H_1_i=H(:,:,1,i);
+            H_2_i=H(:,:,2,i);
+            H_3_i=H(:,:,3,i);
+            
+            H_1_k=H(:,:,1,k);
+            H_2_k=H(:,:,2,k);
+            H_3_k=H(:,:,3,k);                   
+            
+           A_i_I_k_c= (A_i(indices_mask).*I_k(indices_mask)).^C(indices_mask);
+           A_k_I_i_c= (A_k(indices_mask).*I_i(indices_mask)).^C(indices_mask);  
+           %% FIXME make sure the order of b1, b2 is correct
+           %it looks like it should be reversed cause of matlab I(y,x)
+           %convention
+           b2(indices_mask) = A_i_I_k_c.*(H_1_i(indices_mask)-x(indices_mask).*H_3_i(indices_mask)/f) - ...
+                               A_k_I_i_c.*(H_1_k(indices_mask)-x(indices_mask).*H_3_k(indices_mask)/f);
+           b1(indices_mask) = A_i_I_k_c.*(H_2_i(indices_mask)-y(indices_mask).*H_3_i(indices_mask)/f)-...
+                               A_k_I_i_c.*(H_2_k(indices_mask)-y(indices_mask).*H_3_i(indices_mask)/f);
+           s12(indices_mask)= (1+Z(indices_mask)/f).*(A_i_I_k_c.*H_3_i(indices_mask)-A_k_I_i_c.*H_3_k(indices_mask));          
+          %TODO instead of the 0=0 entries, reduce the size of the matrices
+            b1(I_k<shadow_threshold) = 0;
+            b2(I_k<shadow_threshold) = 0;
+            s12(I_k<shadow_threshold) = 0;
+            
+            b1(I_i<shadow_threshold) = 0;
+            b2(I_i<shadow_threshold) = 0;
+            s12(I_i<shadow_threshold) = 0;
+          %% SATURATION Threshold       
+%           sum(sum((I_k>0.45)))
+            b1(I_k>saturation_thresh) = 0;
+            b2(I_k>saturation_thresh) = 0;
+            s12(I_k>saturation_thresh) = 0;
+            
+            b1(I_i>saturation_thresh) = 0;
+            b2(I_i>saturation_thresh) = 0;
+            s12(I_i>saturation_thresh) = 0;            
+            
+            b(:,:,current_index,1) = b1;
+            b(:,:,current_index,2) = b2;
+            s(:,:,current_index) = s12;
+            current_index = current_index+1;
+        end
+    end   
+end
+function [b,s]=calculate_b_s_fields_amb(I,mask_indx,x,y,Z,f,C,A,H,thresholds)
+
 shadow_threshold=thresholds(1);
 saturation_thresh=thresholds(2);
 
@@ -119,13 +199,6 @@ for ii = 1 : nb_images-3
                 end
             end
         end
-
-%% PUT a flat patch in places where there are no data    
-    ss=sum(s,3);
-    holes=(ss==0);
-    b1=b(:,:,1,1);
-    b1(holes)=1;
-    b(:,:,1,1)=b1;
 end
 
 end 

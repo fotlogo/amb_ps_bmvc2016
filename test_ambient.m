@@ -30,7 +30,32 @@ data_f=[data_dir,name,'.mat'];
 %--Sd: 3 x nimages vector containing light source maximum illumination
 %directions. If mu=0 it does not matter (as long as it non-zero). if not
 %sure use [0;0;1] for each source
+%--AMB:used to compare with the old, non-ambient version
+
+% data_f='../cambridge_ps/data/statue_24_ambient.mat';
+% 
+% data_f='buddha.mat';
+
+
 load(data_f) 
+
+%  mu = 0.5*ones(24,1); 
+%  Sd=zeros(3,size(I,3));
+%  Sd(3,:)=1;
+%  
+%  images=1:2:size(I,3) ;
+% % images=[4;12;18];
+% % images=[1;3;6;9]; %for iso-depth
+% I=single(I(:,:,images));
+% AMB=single(AMB);
+% S=S(:,images);
+% Phi=Phi(images);
+% mu=mu(images);
+% Sd=Sd(:,images);
+% 
+% 
+% save('buddha.mat','I','AMB','mask','mean_distance','S','Phi','f','cc', 'mm_to_px', 'mu', 'Sd');
+% return;
 %% SOME TESTS
 [nrows,ncols,nimages] = size(I);
 assert(size(S,1)==3);
@@ -45,6 +70,7 @@ assert(size(mu,1)==nimages);
 ratio =2;
 I=imresize(I,[nrows,ncols]/ratio); 
 mask=imresize(mask,[nrows,ncols]/ratio);
+AMB=imresize(AMB,[nrows,ncols]/ratio);
 S=S/ratio;
 
 f = f/ratio;
@@ -66,18 +92,19 @@ S_struct.mu=mu;
 use_L2=1; %use (much) faster and less memory consuming L2 optimiser (instead of L1). The L1 optimiser 'should' be more accurate
 C =1*ones(size(I,1),size(I,2));  %initialise C as being Lambertian.
 refine_C=1;
-shadow_threshold = 0.01; 
+shadow_threshold = 0.03; 
 saturation_thress=0.99;
 thresholds=[shadow_threshold,saturation_thress];
-%% run main function
-[XA,YA,ZA, C_refined] = ambient_ps(I, mask, mean_distance,cam, C,S_struct,thresholds,use_L2,refine_C);
 
-C=C_refined;
+ambient=1;
+%% run main function-AMBIENT
+[XA,YA,ZA, C_refined] = perform_ps(I, mask, mean_distance,cam, C,S_struct,thresholds,use_L2,refine_C,ambient);
+
 mask_out=mask;
 mask_out(isnan(ZA))=0;% 
 %% Display 
 title_str=sprintf('Ambient perspective PS with %d images', size(S,2));
-[ N ] = visualise_reconstruction(XA,YA,ZA,C,mask_out,f,cc,S,Sd,Phi,mu,mm_to_px,title_str ); 
+[ ~ ] = visualise_reconstruction(XA,YA,ZA,C_refined,mask_out,f,cc,S,Sd,Phi,mu,mm_to_px,title_str ); 
 
 figure;
 imshow(C_refined);
@@ -85,3 +112,16 @@ title('estimated c map');
 
 XYZ = cat(3,XA,YA,ZA)/mm_to_px;
 export_ply(XYZ,mask_out,[results_dir,name,'.ply']);
+%%
+%% run main function-DARK to compare
+%remove ambient else reconstruction will be very flat
+Ia=I-repmat(AMB,1,1,size(I,3));
+Ia=max(Ia,0.01);
+ambient=0;
+[XD,YD,ZD, C_refined] = perform_ps(Ia, mask, mean_distance,cam, C,S_struct,thresholds,use_L2,refine_C,ambient);
+
+mask_out=mask;
+mask_out(isnan(ZA))=0;% 
+%% Display 
+title_str=sprintf('Pperspective PS (old) with %d images', size(S,2));
+[ ~ ] = visualise_reconstruction(XD,YD,ZD,C_refined,mask_out,f,cc,S,Sd,Phi,mu,mm_to_px,title_str ); 

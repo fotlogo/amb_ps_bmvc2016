@@ -1,5 +1,92 @@
-function [C_refined]=re_estimate_c(I,C,N,H,A,mask,shadow_threshold)  
-%UNTITLED Summary of this function goes here
+function [C_refined]=re_estimate_c(I,C,N,H,A,mask,shadow_threshold,ambient)  
+%Reestimate c  using current estimates of geometry. ambient version quite
+%different from dark on
+    if ambient
+        [C_refined]=re_estimate_c_amb(I,C,N,H,A,mask,shadow_threshold);  
+    else
+        uniform_c=0; %get more accuracy for objects with uniform reflectance
+        [C_refined]=re_estimate_c_dark(I,N,H,A,C,mask,shadow_threshold, uniform_c);
+    end
+end
+function [C_refined]=re_estimate_c_dark(I,N,H,A,C_old,mask,shadow_threshold, uniform_c)    
+    disp('C estimation dark...');    
+
+    [nrows,ncols,nb_images] = size(I);	
+	    
+    nb_combinations = nchoosek(nb_images,2);
+    
+	num = zeros(nrows,ncols,nb_combinations);
+	denom = zeros(nrows,ncols,nb_combinations);
+	current_index = 1;
+    
+    current_numerator=NaN*ones(nrows,ncols);
+    current_denominator=NaN*ones(nrows,ncols);    
+    
+    indices_mask = (mask>0);     
+    
+	for i = 1:nb_images-1
+        Ai=A(:,:,i);
+        Ii=I(:,:,i);
+        for j = i+1:nb_images
+            
+           Hi_dot_N=zeros(nrows,ncols);
+           Hj_dot_N=zeros(nrows,ncols);
+            
+            for k=1:size(N,3) %i.e. 3
+                Hki=H(:,:,k,i);
+                Hkj=H(:,:,k,j);
+                Nk=N(:,:,k);
+                Hi_dot_N(indices_mask)=  Hi_dot_N(indices_mask)+ Hki(indices_mask).*Nk(indices_mask);   
+                Hj_dot_N(indices_mask)=  Hj_dot_N(indices_mask)+ Hkj(indices_mask).*Nk(indices_mask);       
+            end     
+            
+            Hi_dot_N(Hi_dot_N<shadow_threshold)=NaN; %low reflectance
+            Hj_dot_N(Hj_dot_N<shadow_threshold)=NaN;
+            
+            current_numerator(indices_mask)=log(Hi_dot_N(indices_mask))-log(Hj_dot_N(indices_mask));     
+            
+            Aj=A(:,:,j);            
+            Ij=I(:,:,j);
+            current_denominator(indices_mask) = log((Ii(indices_mask).*Aj(indices_mask))./(Ij(indices_mask).*Ai(indices_mask)));                 
+
+            current_numerator(Ii<2*shadow_threshold)=NaN;
+            current_numerator(Ij<2*shadow_threshold)=NaN;
+            
+            current_numerator(Ii>0.95)=NaN;
+            current_numerator(Ij>0.95)=NaN;
+
+			num(:,:,current_index) = current_numerator;
+			denom(:,:,current_index) = current_denominator;
+			current_index = current_index + 1;				
+        end				
+	end
+
+	Cmap = num./denom;    
+
+	Cmap=nanmedian(Cmap,3);    
+
+    Cmap (Cmap > 1.0)= 1;
+    Cmap (Cmap < 0.1)= 0.1;
+    Cmap(isnan(Cmap))= C_old(isnan(Cmap));
+
+%% BLUR a bit
+    Cmap=imresize(Cmap,[nrows,ncols]/8); 
+    Cmap=imresize(Cmap,[nrows,ncols]); 
+
+if uniform_c
+     C_refined=mean(Cmap(:))*ones(nrows,ncols);
+else
+     C_refined=0.5*C_old+0.5*Cmap;
+end
+
+    
+ C_mean = nanmean(C_refined(mask>0));        
+ fprintf(1, 'C mean new is %.4f \n',C_mean);     
+		
+			
+end
+function [C_refined]=re_estimate_c_amb(I,C,N,H,A,mask,shadow_threshold)  
+
 %   Detailed explanation goes here
 	disp('C estimation (ambient version)...');
     [nrows,ncols,nb_images] = size(I);
@@ -100,8 +187,8 @@ function [C_refined]=re_estimate_c(I,C,N,H,A,mask,shadow_threshold)
    
     %% Keep a bit of the old as a prior
        C_refined=0.05*C+0.95*Cmap;      
-       C_mean_new = nanmean(C_refined(indices_mask));
        
+       C_mean_new = nanmean(C_refined(indices_mask));       
        fprintf(1, 'C mean new is %.4f \n',C_mean_new);       
 %        C_refined=C_mean_new*ones(size(Cmap)); %could be helpfull
        
