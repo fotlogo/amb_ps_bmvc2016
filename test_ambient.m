@@ -30,32 +30,9 @@ data_f=[data_dir,name,'.mat'];
 %--Sd: 3 x nimages vector containing light source maximum illumination
 %directions. If mu=0 it does not matter (as long as it non-zero). if not
 %sure use [0;0;1] for each source
-%--AMB:used to compare with the old, non-ambient version
-
-% data_f='../cambridge_ps/data/statue_24_ambient.mat';
-% 
-% data_f='buddha.mat';
-
+%--AMB:(OPTIONAL).used to compare with the old, non-ambient version
 
 load(data_f) 
-
-%  mu = 0.5*ones(24,1); 
-%  Sd=zeros(3,size(I,3));
-%  Sd(3,:)=1;
-%  
-%  images=1:2:size(I,3) ;
-% % images=[4;12;18];
-% % images=[1;3;6;9]; %for iso-depth
-% I=single(I(:,:,images));
-% AMB=single(AMB);
-% S=S(:,images);
-% Phi=Phi(images);
-% mu=mu(images);
-% Sd=Sd(:,images);
-% 
-% 
-% save('buddha.mat','I','AMB','mask','mean_distance','S','Phi','f','cc', 'mm_to_px', 'mu', 'Sd');
-% return;
 %% SOME TESTS
 [nrows,ncols,nimages] = size(I);
 assert(size(S,1)==3);
@@ -114,7 +91,9 @@ XYZ = cat(3,XA,YA,ZA)/mm_to_px;
 export_ply(XYZ,mask_out,[results_dir,name,'.ply']);
 %%
 %% run main function-DARK to compare
+if exist('AMB','var')
 %remove ambient else reconstruction will be very flat
+%of course if data was captured under no ambient just run directly
 Ia=I-repmat(AMB,1,1,size(I,3));
 Ia=max(Ia,0.01);
 ambient=0;
@@ -125,3 +104,4 @@ mask_out(isnan(ZA))=0;%
 %% Display 
 title_str=sprintf('Pperspective PS (old) with %d images', size(S,2));
 [ ~ ] = visualise_reconstruction(XD,YD,ZD,C_refined,mask_out,f,cc,S,Sd,Phi,mu,mm_to_px,title_str ); 
+end
