@@ -1,6 +1,6 @@
 function [X,Y,Z, C_refined] = perform_ps(I, mask, mean_distance, cam, C, S_struct, thresholds, use_L2, refine_C, ambient)
-%ambient_ps main calculation function-has the option of running the old,
-%non ambeint code
+%ambient_ps main calculation function-has the option of running the SIAM,
+%non ambient code
 % Authors Fotios Logothetis fl302@cam.ac.uk and Yvain Quéau
 [nrows,ncols,~] = size(I);
 
@@ -16,7 +16,7 @@ mu=S_struct.mu;
 %%% 
 epsil = 0.25;   % Lambertian / specular weight
 %optimiser params. leave them as they are   
-alpha = 50;
+alpha = 0.2;
 minit = 2;
 maxit = 20;
 

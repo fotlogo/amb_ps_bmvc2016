@@ -1,4 +1,5 @@
 %% Main test code for the paper 'Near-Field Photometric Stereo in Ambient Light'. from BMVC 2016
+%% Code for 'A Single Lobe Photometric Stereo Approach for Heterogeneous Materia' from SIAM 2016 also included
 % Author Fotios Logothetis fl302@cam.ac.uk
 clear all 
 close all
@@ -44,7 +45,7 @@ assert(size(mu,1)==nimages);
 %% RESIZE
 %This helps reducing computation time and RAM
 %The L1 optimiser will need 10+GB of RAM if running at full resolution
-ratio =2;
+ratio =8;
 I=imresize(I,[nrows,ncols]/ratio); 
 mask=imresize(mask,[nrows,ncols]/ratio);
 AMB=imresize(AMB,[nrows,ncols]/ratio);
@@ -66,7 +67,7 @@ S_struct.Sd=Sd;
 S_struct.Phi=Phi;
 S_struct.mu=mu;
 %% Misk opts
-use_L2=1; %use (much) faster and less memory consuming L2 optimiser (instead of L1). The L1 optimiser 'should' be more accurate
+use_L2=0; %use (much) faster and less memory consuming L2 optimiser (instead of L1). The L1 optimiser 'should' be more accurate
 C =1*ones(size(I,1),size(I,2));  %initialise C as being Lambertian.
 refine_C=1;
 shadow_threshold = 0.03; 
@@ -83,9 +84,9 @@ mask_out(isnan(ZA))=0;%
 title_str=sprintf('Ambient perspective PS with %d images', size(S,2));
 [ ~ ] = visualise_reconstruction(XA,YA,ZA,C_refined,mask_out,f,cc,S,Sd,Phi,mu,mm_to_px,title_str ); 
 
-figure;
-imshow(C_refined);
-title('estimated c map');
+% figure;
+% imshow(C_refined);
+% title('estimated c map');
 
 XYZ = cat(3,XA,YA,ZA)/mm_to_px;
 export_ply(XYZ,mask_out,[results_dir,name,'.ply']);
@@ -102,6 +103,6 @@ ambient=0;
 mask_out=mask;
 mask_out(isnan(ZA))=0;% 
 %% Display 
-title_str=sprintf('Pperspective PS (old) with %d images', size(S,2));
+title_str=sprintf('Perspective PS (SIAM) with %d images', size(S,2));
 [ ~ ] = visualise_reconstruction(XD,YD,ZD,C_refined,mask_out,f,cc,S,Sd,Phi,mu,mm_to_px,title_str ); 
 end
