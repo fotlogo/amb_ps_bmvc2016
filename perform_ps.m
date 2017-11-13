@@ -58,8 +58,7 @@ for loop = 1:nloops
 %     L1 Opti
     order = 1; % 1 for order-1 finite diff (thin details, less robust), 2 for order-2 (smoother, more robust)    
     %     whos    
-	if ((use_L2)||(loop==1))
-       
+	if(use_L2)       
         disp('running L2 optimiser...');
        
         [A_system,mapping_matrix,Omega] = make_Matrix_freeboundary_ICCV(b,lambda,mask,nrows,ncols);        
@@ -68,10 +67,10 @@ for loop = 1:nloops
         
         Z(indices_mask) =A_system\b_system;    
         clear A_system b_system    
-	else 
-            % L1 optim
-            disp('SB refinement');
-            [Z,~,~,~] = minimisation_L1_bis(b,s,mask,Z0,tol,minit,maxit,lambda,order,alpha,1,Z);%       
+    else 
+        % L1 optim
+        disp('running L1 optimiser');%the first itteration is L2 anyways
+        [Z,~,~,~] = minimisation_L1_bis(b,s,mask,Z0,tol,minit,maxit,lambda,order,alpha,1,Z);%       
 	end      
 	Z(mask==0) = NaN;
   %%%%stopping condition on residual   
