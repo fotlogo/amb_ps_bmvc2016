@@ -1,33 +1,36 @@
-function [z,d,e,it_breg] = minimisation_L1_bis(b,s,mask,z0,tol,minit,maxit,lambda,order,alpha,display,zinit)
+function [zm,d,e,it_breg] = minimisation_L1_bis(b,s,mask,z0,tol,minit,maxit,lambda,alpha,display,zinit)
 % Input : 
 % b : nrows x ncols x m x 2 -- REQUIRED
 % s : nrows x ncols x m -- REQUIRED
 % (mask : nrows x ncols) -- DEFAULT : ones(nrows,ncols)
-% (z0 : nrows x ncols) -- DEFAULT : zeros(nrows,ncols)
+% (z0 : nmaskx1) -- DEFAULT : zeros(nrows,ncols)
 % (tol : 1x1) -- DEFAULT : 1e-5
 % (maxit : 1x1) -- DEFAULT : 100
 % (lambda : 1x1) -- DEFAULT : 1e-9
-% (order : 1x1) -- DEFAULT : 1
 % (alpha : 1x1) -- DEFAULT : 1e-1
 % (nGS : 1x1) -- DEFAULT : 50
 % (display : 1x1) -- DEFAULT : 0
 % Output : 
-% z : nrows x ncols
+% z : nmaskx1
+%% TODO vectorise everything else
     [nrows,ncols,m,~] = size(b);
 	% Create masks
 	disp('Setting variables');
     
 	indices_mask = find(mask>0);    
     
-	indices_nmask = mask==0;
+% 	indices_nmask = mask==0;
 	nb_pixels_mask = length(indices_mask);
     %to know when are we doing fw or backwards differences
     b1f=[-1,-1,+1,+1];
     b2f=[-1,+1,+1,-1];  
     %%
-    sum_b1_2 = sum(b(:,:,:,1).^2,3);
-	sum_b2_2 = sum(b(:,:,:,2).^2,3); 
-    sum_b1_b2 = sum(b(:,:,:,1).*b(:,:,:,2),3);
+	b1=b(:,:,:,1);
+	b2=b(:,:,:,2);
+    
+    sum_b1_2 = sum(b1.^2,3);
+	sum_b2_2 = sum(b2.^2,3); 
+    sum_b1_b2 = sum(b1.*b2,3);
  
 	[I, J, indices_centre, I_xy, I_x1_y, I_x_y1,Gx,Gy] = make_system_indices_v2(mask);
     
@@ -88,25 +91,22 @@ function [z,d,e,it_breg] = minimisation_L1_bis(b,s,mask,z0,tol,minit,maxit,lambd
 	two_alpha = 2*alpha;
 	
 	% Initialisation
-	z = zinit;z(indices_nmask)=NaN;
+	zm = zinit;%z(indices_nmask)=NaN;
 	d = zeros(nrows,ncols,m);
 	e = zeros(nrows,ncols,m);
 	
 	residual_mat = zeros(nrows,ncols,m);
     reskfull=zeros(nrows,ncols); %TODO vectorise before, at main file
     
-    b1=b(:,:,:,1);
-	b2=b(:,:,:,2);        
-
-    trilA = tril(A);   
-    
     s_breg=s; 
+	disp('Cholesky factorization...');	
+    R = chol(A); 
 	%%% Split-Bregman
 	for it_breg = 1:maxit
-		z_before = z;	
+		z_before = zm;	
 		%%% z update
 		% Compute System update		
-		B(:) = 2*lambda*z0(indices_mask)/alpha;       
+		B(:) = 2*lambda*z0/alpha;       
         
         sum_b1s = sum(b1.*s_breg,3);
         sum_b2s = sum(b2.*s_breg,3);
@@ -120,26 +120,13 @@ function [z,d,e,it_breg] = minimisation_L1_bis(b,s,mask,z0,tol,minit,maxit,lambd
             
             values = -2*sum_b2s*b2f(indx);  
             B(I_x_y1{indx}) = B(I_x_y1{indx})+values(indices_centre{indx});  
-        end
-    
-        if it_breg<20 % in the first itterations direct solve (or pcg). almost all here
-            %todo be a bit smart here to minimise the times the system has
-            %to be directly solved
-            z(indices_mask)=A\B;
-            x = z(indices_mask);
-            r=B-A*x;
-        else % then Gauss-Seidel for speed 		
-            for iGS=1:1000
-                %%% Gauss-Seidel update of u					
-                % EffectiveGauss-Seidel update
-                x=x+trilA\r; 
-                r=B-A*x;     
-                z(indices_mask)=x;
-            end	
-        end
+        end 
+        %% z update through L2 minimisation. use the cholesky factors     
+        z1=R'\B;
+        zm=R\z1;
 % 		%%% Residual
-        zx=Gx*z(indices_mask);
-        zy=Gy*z(indices_mask);  
+        zx=Gx*zm;
+        zy=Gy*zm;  
 %         
         for k = 1:m %TODO do the vectorisation before
             b1k=b1(:,:,k);
@@ -167,7 +154,7 @@ function [z,d,e,it_breg] = minimisation_L1_bis(b,s,mask,z0,tol,minit,maxit,lambd
 		e = res_plus_e-d;			
 			
 		%%% CV test			
-		residual = norm(z_before(indices_mask)-z(indices_mask))/norm(z(indices_mask));
+		residual = norm(z_before-zm)/norm(zm);
 		if(display>0)
 			fprintf(1,'Iteration %d : residual = %.08f\n',it_breg,residual);			
 		end	

@@ -55,8 +55,7 @@ for loop = 1:nloops
     [b,s]=calculate_b_s_fields(I,indices_mask,x,y,Z,f,C,A,H,thresholds,ambient);    
     
     clear A H  %save memory  
-%     L1 Opti
-    order = 1; % 1 for order-1 finite diff (thin details, less robust), 2 for order-2 (smoother, more robust)    
+%     L1 Opti   
     %     whos    
 	if(use_L2)       
         disp('running L2 optimiser...');
@@ -69,8 +68,9 @@ for loop = 1:nloops
         clear A_system b_system    
     else 
         % L1 optim
-        disp('running L1 optimiser');%the first itteration is L2 anyways
-        [Z,~,~,~] = minimisation_L1_bis(b,s,mask,Z0,tol,minit,maxit,lambda,order,alpha,1,Z);%       
+        disp('running L1 optimiser');
+        [Zm,~,~,~] = minimisation_L1_bis(b,s,mask,Z0(indices_mask),tol,minit,maxit,lambda,alpha,1,Z(indices_mask));%  
+        Z(indices_mask)=Zm;
 	end      
 	Z(mask==0) = NaN;
   %%%%stopping condition on residual   
